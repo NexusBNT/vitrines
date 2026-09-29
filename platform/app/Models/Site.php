@@ -35,7 +35,7 @@ use Illuminate\Support\Str;
  *     notes: ?string,
  * } $brief
  */
-#[Fillable(['client_id', 'plan_id', 'server_id', 'slug', 'theme', 'status', 'brief', 'settings'])]
+#[Fillable(['client_id', 'plan_id', 'server_id', 'slug', 'theme', 'status', 'brief', 'draft_spec', 'settings'])]
 #[Hidden(['public_key'])]
 class Site extends Model
 {

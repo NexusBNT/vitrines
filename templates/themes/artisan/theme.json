@@ -1,0 +1,17 @@
+{
+    "name": "artisan",
+    "label": "Artisan",
+    "version": "1.0.0",
+    "sections": {
+        "hero": ["split", "image", "plain"],
+        "page_header": [],
+        "services": ["cards", "detailed"],
+        "about": [],
+        "highlights": [],
+        "gallery": [],
+        "zone": [],
+        "faq": [],
+        "cta": [],
+        "contact": []
+    }
+}
