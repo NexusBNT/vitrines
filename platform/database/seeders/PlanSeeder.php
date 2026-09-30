@@ -28,6 +28,7 @@ class PlanSeeder extends Seeder
                 PlanFeature::Posts->value,
                 PlanFeature::SeoReports->value,
                 PlanFeature::PrioritySupport->value,
+                PlanFeature::AiFull->value,
             ], 'sort_order' => 3],
         ];
 

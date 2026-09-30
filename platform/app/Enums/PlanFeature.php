@@ -13,6 +13,7 @@ enum PlanFeature: string implements HasLabel
     case Posts = 'posts';
     case SeoReports = 'seo_reports';
     case PrioritySupport = 'priority_support';
+    case AiFull = 'ai_full';
 
     public function getLabel(): string
     {
@@ -24,6 +25,7 @@ enum PlanFeature: string implements HasLabel
             self::Posts => 'Actualités',
             self::SeoReports => 'Suivi SEO et rapports',
             self::PrioritySupport => 'Modifications prioritaires',
+            self::AiFull => 'Génération IA intégrale (design, illustrations, textes)',
         };
     }
 }

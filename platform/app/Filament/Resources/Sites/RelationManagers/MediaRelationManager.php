@@ -50,7 +50,8 @@ class MediaRelationManager extends RelationManager
                     ->maxLength(255),
                 Select::make('category')
                     ->label('Usage')
-                    ->options(MediaCategory::class),
+                    ->options(fn (?Media $record): array => self::categoryOptions($record))
+                    ->helperText(fn (?Media $record): ?string => $record?->isAiGenerated() ? 'Une illustration IA ne peut pas être présentée comme une réalisation, une photo d\'équipe ou les locaux de l\'entreprise.' : null),
             ]);
     }
 
@@ -73,7 +74,10 @@ class MediaRelationManager extends RelationManager
                     ->rules(['nullable', 'max:255']),
                 SelectColumn::make('category')
                     ->label('Usage')
-                    ->options(MediaCategory::class),
+                    ->options(fn (Media $record): array => self::categoryOptions($record)),
+                TextColumn::make('source')
+                    ->label('Origine')
+                    ->badge(),
                 TextColumn::make('status')
                     ->label('État')
                     ->badge()
@@ -128,6 +132,21 @@ class MediaRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Usages autorisés : une illustration IA ne peut jamais passer pour une photo réelle de l'entreprise.
+     *
+     * @return array<string, string>
+     */
+    public static function categoryOptions(?Media $record): array
+    {
+        $excluded = $record?->isAiGenerated() ? [MediaCategory::Work, MediaCategory::Team, MediaCategory::Premises] : [];
+
+        return collect(MediaCategory::cases())
+            ->reject(fn (MediaCategory $category): bool => in_array($category, $excluded, true))
+            ->mapWithKeys(fn (MediaCategory $category): array => [$category->value => $category->getLabel()])
+            ->all();
     }
 
     /**

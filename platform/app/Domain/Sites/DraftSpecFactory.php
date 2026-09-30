@@ -3,6 +3,7 @@
 namespace App\Domain\Sites;
 
 use App\Enums\MediaCategory;
+use App\Enums\MediaSource;
 use App\Enums\MediaStatus;
 use App\Enums\PlanFeature;
 use App\Models\Media;
@@ -116,9 +117,9 @@ class DraftSpecFactory
      */
     private function multiPage(array $site, array $context, Collection $media, bool $withGallery): array
     {
-        $works = $this->mediaIds($media, MediaCategory::Work);
+        $works = $this->mediaIds($this->uploads($media), MediaCategory::Work);
         $showGallery = $withGallery && $works !== [];
-        $services = $this->serviceItems($site);
+        $services = $this->serviceItems($site, $media);
 
         $home = [
             $this->hero($context, $media),
@@ -134,7 +135,7 @@ class DraftSpecFactory
                 'type' => 'about',
                 'heading' => 'À propos de '.$context['name'],
                 'paragraphs' => array_slice($this->paragraphs($site), 0, 1),
-                'image' => $this->firstMediaId($media, [MediaCategory::Team, MediaCategory::Premises]),
+                'image' => $this->aboutImage($media),
                 'link' => ['page' => 'about', 'label' => 'En savoir plus'],
             ],
         ];
@@ -165,7 +166,7 @@ class DraftSpecFactory
                     'type' => 'about',
                     'heading' => null,
                     'paragraphs' => $this->paragraphs($site),
-                    'image' => $this->firstMediaId($media, [MediaCategory::Team, MediaCategory::Premises]),
+                    'image' => $this->aboutImage($media),
                     'link' => null,
                 ],
                 $this->zone($site),
@@ -198,14 +199,14 @@ class DraftSpecFactory
     {
         return $this->page('home', '', 'Accueil', $context['name'].' – '.$context['activity'].' à '.$context['city'], $this->homeDescription($site), [
             $this->hero($context, $media),
-            ['type' => 'services', 'layout' => 'detailed', 'anchor' => 'services', 'nav_label' => 'Services', 'heading' => 'Nos services', 'intro' => null, 'items' => $this->serviceItems($site), 'link' => null],
+            ['type' => 'services', 'layout' => 'detailed', 'anchor' => 'services', 'nav_label' => 'Services', 'heading' => 'Nos services', 'intro' => null, 'items' => $this->serviceItems($site, $media), 'link' => null],
             [
                 'type' => 'about',
                 'anchor' => 'a-propos',
                 'nav_label' => 'À propos',
                 'heading' => 'À propos de '.$context['name'],
                 'paragraphs' => $this->paragraphs($site),
-                'image' => $this->firstMediaId($media, [MediaCategory::Team, MediaCategory::Premises]),
+                'image' => $this->aboutImage($media),
                 'link' => null,
             ],
             $this->zone($site),
@@ -236,7 +237,8 @@ class DraftSpecFactory
      */
     private function hero(array $context, Collection $media): array
     {
-        $image = $this->firstMediaId($media, [MediaCategory::Hero, MediaCategory::Work, MediaCategory::Premises]);
+        $image = $this->firstMediaId($this->uploads($media), [MediaCategory::Hero, MediaCategory::Work, MediaCategory::Premises])
+            ?? $this->aiSlot($media, 'hero');
 
         return [
             'type' => 'hero',
@@ -299,12 +301,45 @@ class DraftSpecFactory
     }
 
     /**
+     * Services du brief, illustrés quand une illustration a été générée pour eux.
+     *
      * @param  array<string, mixed>  $site
-     * @return list<array{name: string, text: ?string}>
+     * @param  Collection<int, Media>  $media
+     * @return list<array{name: string, text: ?string, image: ?int}>
      */
-    private function serviceItems(array $site): array
+    private function serviceItems(array $site, Collection $media): array
     {
-        return $site['services'];
+        return collect($site['services'])
+            ->map(fn (array $service, int $index): array => [...$service, 'image' => $this->aiSlot($media, "service-{$index}")])
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, Media>  $media
+     */
+    private function aboutImage(Collection $media): ?int
+    {
+        return $this->firstMediaId($this->uploads($media), [MediaCategory::Team, MediaCategory::Premises])
+            ?? $this->aiSlot($media, 'about');
+    }
+
+    /**
+     * Photos fournies par le client (les illustrations IA ne sont jamais des réalisations).
+     *
+     * @param  Collection<int, Media>  $media
+     * @return Collection<int, Media>
+     */
+    private function uploads(Collection $media): Collection
+    {
+        return $media->where('source', MediaSource::Upload);
+    }
+
+    /**
+     * @param  Collection<int, Media>  $media
+     */
+    private function aiSlot(Collection $media, string $slot): ?int
+    {
+        return $media->where('source', MediaSource::Ai)->firstWhere('ai_slot', $slot)?->id;
     }
 
     /**

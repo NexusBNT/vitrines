@@ -120,6 +120,11 @@ class RenderContext
         return collect($this->spec['pages'])->contains('key', $key);
     }
 
+    public function hasAiIllustrations(): bool
+    {
+        return collect($this->media)->contains(fn (Media $media): bool => $media->isAiGenerated());
+    }
+
     public function media(?int $id): ?Media
     {
         return $id === null ? null : ($this->media[$id] ?? null);

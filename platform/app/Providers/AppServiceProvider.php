@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Generation\AiManager;
 use App\Domain\Generation\Providers\ClaudeProvider;
+use App\Domain\Generation\Providers\OpenAiImageProvider;
 use App\Domain\Generation\Providers\OpenAiProvider;
 use App\Models\AuditLog;
 use Illuminate\Auth\Events\Failed;
@@ -24,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
             'claude' => new ClaudeProvider(config('ai.providers.claude')),
             'openai' => new OpenAiProvider(config('ai.providers.openai')),
         ]));
+
+        $this->app->singleton(OpenAiImageProvider::class, fn (): OpenAiImageProvider => new OpenAiImageProvider(config('ai.providers.openai')));
     }
 
     /**

@@ -28,6 +28,11 @@
         <h2>Propriété intellectuelle</h2>
         <p>Les textes, photographies et éléments graphiques de ce site sont la propriété de {{ $legal['company_name'] }} ou de leurs auteurs respectifs. Toute reproduction sans autorisation est interdite.</p>
 
+        @if ($ctx->hasAiIllustrations())
+            <h2>Illustrations</h2>
+            <p>Certaines illustrations de ce site ont été générées par intelligence artificielle. Elles évoquent les prestations proposées et ne représentent pas des réalisations de {{ $legal['company_name'] }}.</p>
+
+        @endif
         <h2>Données personnelles</h2>
         <p>Le traitement des données transmises via ce site est décrit dans la <a href="{{ $ctx->url('confidentialite') }}">politique de confidentialité</a>.</p>
     </div>

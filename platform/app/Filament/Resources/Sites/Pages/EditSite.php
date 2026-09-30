@@ -5,14 +5,17 @@ namespace App\Filament\Resources\Sites\Pages;
 use App\Domain\Build\BuildPreview;
 use App\Domain\Generation\AiManager;
 use App\Domain\Sites\DraftSpecFactory;
+use App\Enums\PlanFeature;
 use App\Filament\Resources\Sites\Pages\Concerns\BuildsPreview;
 use App\Filament\Resources\Sites\SiteResource;
+use App\Jobs\GenerateFullSite;
 use App\Jobs\GenerateSiteContent;
 use App\Models\AuditLog;
 use App\Models\Site;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
@@ -33,6 +36,36 @@ class EditSite extends EditRecord
         $aiAvailable = app(AiManager::class)->isAvailable('site_content');
 
         return [
+            Action::make('generateFullSite')
+                ->label('Génération intégrale (IA)')
+                ->icon(Heroicon::OutlinedRocketLaunch)
+                ->color('success')
+                ->visible(fn (): bool => $this->record->plan->hasFeature(PlanFeature::AiFull))
+                ->disabled(! $aiAvailable)
+                ->tooltip($aiAvailable ? null : 'Ajoutez une clé API dans le fichier .env.')
+                ->modalHeading('Génération intégrale du site')
+                ->modalDescription('L\'IA choisit un design (si aucun n\'est retenu), crée les illustrations manquantes, puis rédige tous les textes. Comptez 3 à 5 minutes ; le résultat arrive dans la cloche des notifications. Les textes actuels seront remplacés.')
+                ->modalSubmitActionLabel('Tout générer')
+                ->schema([
+                    Textarea::make('instructions')
+                        ->label('Consignes (facultatif)')
+                        ->placeholder('Ex. : ambiance haut de gamme, mettre en avant la rénovation.')
+                        ->rows(3)
+                        ->maxLength(1000),
+                    Toggle::make('replace_illustrations')
+                        ->label('Remplacer les illustrations IA existantes')
+                        ->helperText('Les photos du client ne sont jamais supprimées.'),
+                ])
+                ->action(function (array $data): void {
+                    $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                    GenerateFullSite::dispatch($this->record, auth()->user(), $data['instructions'] ?? null, (bool) ($data['replace_illustrations'] ?? false));
+
+                    Notification::make()
+                        ->title('Génération intégrale lancée')
+                        ->body('Comptez 3 à 5 minutes. Le résultat arrivera dans la cloche des notifications.')
+                        ->success()
+                        ->send();
+                }),
             Action::make('generateWithAi')
                 ->label('Rédiger avec l\'IA')
                 ->icon(Heroicon::OutlinedSparkles)

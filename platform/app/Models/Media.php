@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MediaCategory;
+use App\Enums\MediaSource;
 use App\Enums\MediaStatus;
 use Database\Factories\MediaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
  * @property list<array{width: int, height: int, files: array<string, string>}>|null $variants
  */
 #[Fillable([
-    'site_id', 'sha256', 'original_path', 'original_name', 'mime', 'bytes',
+    'site_id', 'source', 'ai_slot', 'ai_prompt', 'sha256', 'original_path', 'original_name', 'mime', 'bytes',
     'width', 'height', 'alt', 'caption', 'category', 'variants', 'status', 'error', 'sort_order',
 ])]
 class Media extends Model
@@ -25,10 +26,19 @@ class Media extends Model
 
     protected $attributes = [
         'status' => 'pending',
+        'source' => 'upload',
     ];
 
     protected static function booted(): void
     {
+        static::saving(function (Media $media): void {
+            $misleading = [MediaCategory::Work, MediaCategory::Team, MediaCategory::Premises];
+
+            if ($media->isAiGenerated() && in_array($media->category, $misleading, true)) {
+                $media->category = MediaCategory::Other;
+            }
+        });
+
         static::deleted(function (Media $media): void {
             $disk = Storage::disk(config('vitrines.media.disk'));
             $disk->delete($media->original_path);
@@ -43,9 +53,15 @@ class Media extends Model
     {
         return [
             'status' => MediaStatus::class,
+            'source' => MediaSource::class,
             'category' => MediaCategory::class,
             'variants' => 'array',
         ];
+    }
+
+    public function isAiGenerated(): bool
+    {
+        return $this->source === MediaSource::Ai;
     }
 
     public function site(): BelongsTo
