@@ -3,7 +3,7 @@
         <div>
             @include('site::themes.artisan.partials.section-heading')
             @if (! empty($section['text']))
-                <p class="section-intro">{{ $section['text'] }}</p>
+                @include('site::themes.artisan.partials.paragraphs', ['text' => $section['text'], 'class' => 'section-intro'])
             @endif
             <form class="contact-form" method="post" action="{{ $ctx->formAction }}" data-contact-form>
                 <input type="hidden" name="ts" value="">

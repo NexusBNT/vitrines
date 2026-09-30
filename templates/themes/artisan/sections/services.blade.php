@@ -25,11 +25,7 @@
                         @endif
                         <div>
                             <{{ $titleTag }} class="service-title">{{ $item['name'] }}</{{ $titleTag }}>
-                            @foreach (preg_split('/\R+/u', (string) ($item['text'] ?? '')) as $paragraph)
-                                @if (trim($paragraph) !== '')
-                                    <p>{{ trim($paragraph) }}</p>
-                                @endif
-                            @endforeach
+                            @include('site::themes.artisan.partials.paragraphs', ['text' => $item['text'] ?? ''])
                         </div>
                     </article>
                 @endforeach

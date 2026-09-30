@@ -69,6 +69,19 @@ class SiteBuilderTest extends TestCase
         $this->assertStringNotContainsString('noindex', $html);
     }
 
+    public function test_splits_multi_paragraph_texts_into_paragraphs(): void
+    {
+        $site = $this->siteWithDraft(Plan::factory()->pro()->create());
+        $spec = $site->draft_spec;
+        $spec['pages'][4]['sections'][1]['text'] = "Premier paragraphe.\n\nSecond paragraphe.";
+
+        $result = app(SiteBuilder::class)->build($site, BuildTarget::production('https://dupont.fr'), $spec);
+        $html = File::get($result->path.'/contact/index.html');
+
+        $this->assertStringContainsString('<p class="section-intro">Premier paragraphe.</p>', $html);
+        $this->assertStringContainsString('<p class="section-intro">Second paragraphe.</p>', $html);
+    }
+
     public function test_preview_build_is_not_indexable(): void
     {
         $site = $this->siteWithDraft(Plan::factory()->create());
