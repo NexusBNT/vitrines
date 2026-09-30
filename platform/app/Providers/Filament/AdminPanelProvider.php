@@ -37,6 +37,8 @@ class AdminPanelProvider extends PanelProvider
                 AppAuthentication::make()->recoverable()->brandName('Vitrines'),
                 isRequired: true,
             )
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('10s')
             ->colors([
                 'primary' => Color::Indigo,
             ])

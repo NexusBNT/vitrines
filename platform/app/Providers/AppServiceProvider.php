@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Domain\Generation\AiManager;
+use App\Domain\Generation\Providers\ClaudeProvider;
+use App\Domain\Generation\Providers\OpenAiProvider;
 use App\Models\AuditLog;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -17,7 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AiManager::class, fn (): AiManager => new AiManager([
+            'claude' => new ClaudeProvider(config('ai.providers.claude')),
+            'openai' => new OpenAiProvider(config('ai.providers.openai')),
+        ]));
     }
 
     /**

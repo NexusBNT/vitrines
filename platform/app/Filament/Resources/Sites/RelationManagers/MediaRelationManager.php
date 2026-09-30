@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Sites\RelationManagers;
 
+use App\Domain\Generation\AiManager;
 use App\Domain\Media\StoreUploadedMedia;
 use App\Enums\MediaCategory;
 use App\Enums\MediaStatus;
+use App\Jobs\DescribeMedia;
 use App\Models\Media;
 use App\Models\Site;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -23,6 +26,7 @@ use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
 class MediaRelationManager extends RelationManager
@@ -107,6 +111,20 @@ class MediaRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('describe')
+                        ->label('Décrire par IA')
+                        ->icon('heroicon-o-sparkles')
+                        ->visible(fn (AiManager $ai): bool => $ai->isAvailable('alt_text'))
+                        ->action(function (Collection $records): void {
+                            $records->where('status', MediaStatus::Ready)->each(fn (Media $media) => DescribeMedia::dispatch($media));
+
+                            Notification::make()
+                                ->title('Description lancée')
+                                ->body('Les textes alternatifs vides seront complétés d\'ici quelques instants.')
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make(),
                 ]),
             ]);

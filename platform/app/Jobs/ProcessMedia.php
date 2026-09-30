@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\Generation\AiManager;
 use App\Domain\Media\ImagePipeline;
 use App\Enums\MediaStatus;
 use App\Models\Media;
@@ -25,7 +26,7 @@ class ProcessMedia implements ShouldBeUnique, ShouldQueue
         return (string) $this->media->getKey();
     }
 
-    public function handle(ImagePipeline $pipeline): void
+    public function handle(ImagePipeline $pipeline, AiManager $ai): void
     {
         $result = $pipeline->process($this->media);
 
@@ -36,6 +37,10 @@ class ProcessMedia implements ShouldBeUnique, ShouldQueue
             'status' => MediaStatus::Ready,
             'error' => null,
         ]);
+
+        if ($ai->isAvailable('alt_text') && (blank($this->media->alt) || $this->media->category === null)) {
+            DescribeMedia::dispatch($this->media);
+        }
     }
 
     public function failed(?Throwable $exception): void
