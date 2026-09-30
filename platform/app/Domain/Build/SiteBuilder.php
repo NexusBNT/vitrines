@@ -3,6 +3,7 @@
 namespace App\Domain\Build;
 
 use App\Domain\Sites\ColorPalette;
+use App\Domain\Sites\Design;
 use App\Models\Site;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -23,8 +24,9 @@ class SiteBuilder
 
     /**
      * @param  array<string, mixed>|null  $spec  Spécification à construire (par défaut : le brouillon du site)
+     * @param  string|null  $outputDirectory  Dossier imposé (remplacé à chaque build) au lieu d'un nouveau build daté
      */
-    public function build(Site $site, BuildTarget $target, ?array $spec = null): BuildResult
+    public function build(Site $site, BuildTarget $target, ?array $spec = null, ?string $outputDirectory = null): BuildResult
     {
         $spec ??= $site->draft_spec ?? throw new RuntimeException('Le site n\'a pas encore de contenu à construire.');
         $theme = $spec['theme']['name'];
@@ -35,15 +37,17 @@ class SiteBuilder
 
         $buildId = now()->format('Ymd-His').'-'.Str::lower(Str::random(6));
         $siteDirectory = $this->siteBuildsDirectory($site);
-        $finalDirectory = $siteDirectory.'/'.$buildId;
+        $finalDirectory = $outputDirectory ?? $siteDirectory.'/'.$buildId;
         $workDirectory = $finalDirectory.'.tmp';
 
+        File::deleteDirectory($workDirectory);
         File::ensureDirectoryExists($workDirectory);
 
         try {
             $media = $this->mediaPublisher->publish($site, $spec, $workDirectory);
-            $palette = ColorPalette::from($spec['theme']['colors']['primary'], $spec['theme']['colors']['secondary'] ?? null);
-            $assets = $this->writeAssets($workDirectory, $theme, $palette, $spec);
+            $design = Design::forSpec($spec);
+            $palette = ColorPalette::from($design['primary'], $design['secondary']);
+            $assets = $this->writeAssets($workDirectory, $theme, $palette, $design, $spec);
 
             $context = new RenderContext(
                 spec: $spec,
@@ -61,6 +65,7 @@ class SiteBuilder
                     'ctx' => $context,
                     'page' => $page,
                     'palette' => $palette,
+                    'design' => $design,
                     'ogImage' => $this->ogImage($context, $page),
                     'structuredData' => $this->structuredData->forPage($context, $page),
                 ])->render();
@@ -76,6 +81,7 @@ class SiteBuilder
             $issues = $this->qualityChecker->check($workDirectory, $spec, $target);
             $this->precompress($workDirectory);
 
+            File::deleteDirectory($finalDirectory);
             File::moveDirectory($workDirectory, $finalDirectory);
         } catch (\Throwable $exception) {
             File::deleteDirectory($workDirectory);
@@ -83,7 +89,7 @@ class SiteBuilder
             throw $exception;
         }
 
-        if (! $target->production) {
+        if (! $target->production && $outputDirectory === null) {
             $this->prunePreviewBuilds($siteDirectory);
         }
 
@@ -93,6 +99,11 @@ class SiteBuilder
     public function siteBuildsDirectory(Site $site): string
     {
         return config('vitrines.builds_path').'/'.$site->directoryName();
+    }
+
+    public function designPreviewDirectory(Site $site, int $proposal): string
+    {
+        return config('vitrines.builds_path').'/'.$site->directoryName().'_designs/'.$proposal;
     }
 
     public function latestBuildDirectory(Site $site): ?string
@@ -106,19 +117,23 @@ class SiteBuilder
 
     /**
      * @param  array<string, string>  $palette
+     * @param  array<string, mixed>  $design
      * @param  array<string, mixed>  $spec
-     * @return array{css: string, js: string, favicon: string}
+     * @return array{css: string, js: string, favicon: string, fonts: list<string>}
      */
-    private function writeAssets(string $directory, string $theme, array $palette, array $spec): array
+    private function writeAssets(string $directory, string $theme, array $palette, array $design, array $spec): array
     {
         $templates = config('vitrines.templates_path');
+        $fonts = $this->writeFonts($directory, $design);
 
         $variables = ':root{'.collect($palette)
             ->map(fn (string $color, string $name): string => '--'.str_replace('_', '-', $name).':'.$color)
-            ->implode(';').'}';
+            ->implode(';').';'.Design::cssVariables($design).'}';
+
+        $css = $fonts['css'].$this->minifyCss(File::get("{$templates}/themes/{$theme}/theme.css"))."\n".$variables;
 
         $files = [
-            'css' => ['css', $variables."\n".$this->minifyCss(File::get("{$templates}/themes/{$theme}/theme.css"))],
+            'css' => ['css', $css],
             'js' => ['js', File::get("{$templates}/js/site.js")],
             'favicon' => ['svg', $this->favicon($spec['site']['name'], $palette)],
         ];
@@ -132,7 +147,40 @@ class SiteBuilder
             $assets[$name] = $path;
         }
 
+        $assets['fonts'] = $fonts['paths'];
+
         return $assets;
+    }
+
+    /**
+     * Copie les polices du design et produit leurs règles @font-face (chemins relatifs à la feuille de style).
+     *
+     * @param  array<string, mixed>  $design
+     * @return array{css: string, paths: list<string>}
+     */
+    private function writeFonts(string $directory, array $design): array
+    {
+        $catalog = Design::fontCatalog();
+        $css = '';
+        $paths = [];
+
+        foreach (Design::fonts($design) as $font) {
+            $source = config('vitrines.templates_path')."/fonts/{$font}/{$font}.woff2";
+            $path = sprintf('assets/fonts/%s.%s.woff2', $font, substr(hash_file('sha256', $source), 0, 10));
+
+            File::ensureDirectoryExists($directory.'/assets/fonts');
+            File::copy($source, $directory.'/'.$path);
+
+            $css .= sprintf(
+                '@font-face{font-family:"%s";src:url("%s") format("woff2");font-weight:%s;font-style:normal;font-display:swap}',
+                $catalog[$font]['family'],
+                substr($path, strlen('assets/')),
+                $catalog[$font]['weight'],
+            );
+            $paths[] = $path;
+        }
+
+        return ['css' => $css, 'paths' => $paths];
     }
 
     /**

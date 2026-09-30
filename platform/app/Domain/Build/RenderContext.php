@@ -26,7 +26,7 @@ class RenderContext
     /**
      * @param  array<string, mixed>  $spec
      * @param  array<int, Media>  $media  Médias du site, indexés par identifiant
-     * @param  array{css: string, js: string, favicon: string}  $assets
+     * @param  array{css: string, js: string, favicon: string, fonts: list<string>}  $assets
      * @param  array<string, mixed>  $legal
      */
     public function __construct(
@@ -72,6 +72,16 @@ class RenderContext
     public function asset(string $name): string
     {
         return $this->target->basePath.$this->assets[$name];
+    }
+
+    /**
+     * Polices à précharger : celle des titres, visible dès le premier écran.
+     *
+     * @return list<string>
+     */
+    public function preloadFonts(): array
+    {
+        return array_map(fn (string $path): string => $this->target->basePath.$path, array_slice($this->assets['fonts'], 0, 1));
     }
 
     /**

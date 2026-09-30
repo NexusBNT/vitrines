@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Sites;
 use App\Filament\Resources\Sites\Pages\CreateSite;
 use App\Filament\Resources\Sites\Pages\EditSite;
 use App\Filament\Resources\Sites\Pages\EditSiteContent;
+use App\Filament\Resources\Sites\Pages\EditSiteDesign;
 use App\Filament\Resources\Sites\Pages\ListSites;
 use App\Filament\Resources\Sites\RelationManagers\MediaRelationManager;
 use App\Filament\Resources\Sites\Schemas\SiteForm;
@@ -51,6 +52,7 @@ class SiteResource extends Resource
         return $page->generateNavigationItems([
             EditSite::class,
             EditSiteContent::class,
+            EditSiteDesign::class,
         ]);
     }
 
@@ -61,6 +63,7 @@ class SiteResource extends Resource
             'create' => CreateSite::route('/create'),
             'edit' => EditSite::route('/{record}/edit'),
             'content' => EditSiteContent::route('/{record}/content'),
+            'design' => EditSiteDesign::route('/{record}/design'),
         ];
     }
 }

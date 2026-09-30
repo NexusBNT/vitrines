@@ -19,16 +19,35 @@ class SitePreviewController extends Controller
         'avif' => 'image/avif',
         'webp' => 'image/webp',
         'jpg' => 'image/jpeg',
+        'woff2' => 'font/woff2',
     ];
+
+    public function __construct(private SiteBuilder $builder) {}
 
     /**
      * Sert le dernier build de prévisualisation d'un site, pour l'administration uniquement.
      */
-    public function __invoke(Site $site, SiteBuilder $builder, string $path = ''): BinaryFileResponse
+    public function __invoke(Site $site, string $path = ''): BinaryFileResponse
     {
-        $root = $builder->latestBuildDirectory($site);
+        $root = $this->builder->latestBuildDirectory($site);
         abort_if($root === null, 404, 'Aucune prévisualisation : cliquez sur « Prévisualiser ».');
 
+        return $this->serve($root, $path);
+    }
+
+    /**
+     * Sert l'aperçu d'une proposition de design.
+     */
+    public function design(Site $site, int $proposal, string $path = ''): BinaryFileResponse
+    {
+        $root = $this->builder->designPreviewDirectory($site, $proposal);
+        abort_unless(is_dir($root), 404, 'Aperçu indisponible : relancez les propositions de design.');
+
+        return $this->serve($root, $path);
+    }
+
+    private function serve(string $root, string $path): BinaryFileResponse
+    {
         $file = realpath($root.'/'.$path);
 
         if ($file !== false && is_dir($file)) {

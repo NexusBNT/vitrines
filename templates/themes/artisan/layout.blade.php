@@ -25,11 +25,14 @@
 @endif
 <meta name="theme-color" content="{{ $palette['primary'] }}">
 <link rel="icon" href="{{ $ctx->asset('favicon') }}" type="image/svg+xml">
+@foreach ($ctx->preloadFonts() as $font)
+<link rel="preload" href="{{ $font }}" as="font" type="font/woff2" crossorigin>
+@endforeach
 <link rel="stylesheet" href="{{ $ctx->asset('css') }}">
 <script src="{{ $ctx->asset('js') }}" defer></script>
 {{ $structuredData }}
 </head>
-<body class="style-{{ $ctx->spec['theme']['style'] }} page-{{ $page['key'] }}">
+<body class="{{ \App\Domain\Sites\Design::bodyClasses($design) }} page-{{ $page['key'] }}">
 <a class="skip-link" href="#contenu">Aller au contenu</a>
 @include('site::themes.artisan.partials.header')
 <main id="contenu">

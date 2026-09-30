@@ -41,6 +41,9 @@ class DraftSpecFactory
             'city' => $siteData['city'],
         ];
 
+        $design = $this->design($site);
+        $context['hero_layout'] = $design['hero_layout'];
+
         $pages = $multiPage
             ? $this->multiPage($siteData, $context, $media, $withGallery)
             : [$this->singlePage($siteData, $context, $media)];
@@ -52,13 +55,24 @@ class DraftSpecFactory
             'theme' => [
                 'name' => $site->theme,
                 'style' => $brief['style'] ?? 'moderne',
-                'colors' => [
-                    'primary' => $brief['colors']['primary'] ?? '#1d4ed8',
-                    'secondary' => $brief['colors']['secondary'] ?? null,
-                ],
+                'colors' => ['primary' => $design['primary'], 'secondary' => $design['secondary']],
+                'design' => $design,
             ],
             'pages' => $pages,
         ];
+    }
+
+    /**
+     * Design retenu pour le site (réglages enregistrés, sinon préréglage de l'ambiance du brief).
+     *
+     * @return array<string, mixed>
+     */
+    public function design(Site $site): array
+    {
+        $brief = $site->brief;
+        $fallback = Design::fromStyle($brief['style'] ?? null, $brief['colors']['primary'] ?? '#1d4ed8', $brief['colors']['secondary'] ?? null);
+
+        return Design::normalize($site->settings['design'] ?? [], $fallback);
     }
 
     /**
@@ -216,7 +230,7 @@ class DraftSpecFactory
     }
 
     /**
-     * @param  array{name: string, activity: string, city: string}  $context
+     * @param  array{name: string, activity: string, city: string, hero_layout: string}  $context
      * @param  Collection<int, Media>  $media
      * @return array<string, mixed>
      */
@@ -226,7 +240,7 @@ class DraftSpecFactory
 
         return [
             'type' => 'hero',
-            'variant' => $image === null ? 'plain' : 'split',
+            'variant' => $image === null ? 'plain' : $context['hero_layout'],
             'h1' => $context['activity'].' à '.$context['city'],
             'lead' => $context['name'].', votre '.Str::lower($context['activity']).' à '.$context['city'].' et ses environs.',
             'image' => $image,

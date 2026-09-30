@@ -34,6 +34,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | site_content : rédaction complète des textes du site (pages, SEO, FAQ).
+    | design       : propositions de direction artistique (jetons de design).
     | alt_text     : description des photos (texte alternatif, usage).
     |
     | « model » à null = modèle par défaut du fournisseur.
@@ -44,6 +45,10 @@ return [
         'site_content' => [
             'provider' => env('AI_SITE_CONTENT_PROVIDER', 'claude'),
             'model' => env('AI_SITE_CONTENT_MODEL'),
+        ],
+        'design' => [
+            'provider' => env('AI_DESIGN_PROVIDER', 'openai'),
+            'model' => env('AI_DESIGN_MODEL'),
         ],
         'alt_text' => [
             'provider' => env('AI_ALT_TEXT_PROVIDER', 'claude'),

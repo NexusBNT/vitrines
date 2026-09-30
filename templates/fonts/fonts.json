@@ -1,0 +1,12 @@
+{
+    "dm-sans": {"family": "DM Sans", "weight": "100 1000", "fallback": "system-ui, sans-serif"},
+    "dm-serif-display": {"family": "DM Serif Display", "weight": "400", "fallback": "Georgia, serif"},
+    "fraunces": {"family": "Fraunces", "weight": "100 900", "fallback": "Georgia, serif"},
+    "inter": {"family": "Inter", "weight": "100 900", "fallback": "system-ui, sans-serif"},
+    "lora": {"family": "Lora", "weight": "400 700", "fallback": "Georgia, serif"},
+    "manrope": {"family": "Manrope", "weight": "200 800", "fallback": "system-ui, sans-serif"},
+    "nunito": {"family": "Nunito", "weight": "200 1000", "fallback": "system-ui, sans-serif"},
+    "playfair-display": {"family": "Playfair Display", "weight": "400 900", "fallback": "Georgia, serif"},
+    "source-sans-3": {"family": "Source Sans 3", "weight": "200 900", "fallback": "system-ui, sans-serif"},
+    "space-grotesk": {"family": "Space Grotesk", "weight": "300 700", "fallback": "system-ui, sans-serif"}
+}
