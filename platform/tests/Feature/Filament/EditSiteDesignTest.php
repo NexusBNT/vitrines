@@ -80,13 +80,23 @@ class EditSiteDesignTest extends TestCase
         $site = $this->siteWithDraft();
 
         Livewire::test(EditSiteDesign::class, ['record' => $site->getRouteKey()])
-            ->fillForm(fn (array $state): array => array_replace_recursive($state, ['settings' => ['design' => ['font_pair' => 'technique', 'header' => 'dark']]]))
+            ->fillForm(fn (array $state): array => array_replace_recursive($state, ['settings' => ['design' => ['font_pair' => 'technique', 'header' => 'dark', 'nav_layout' => 'burger', 'gallery_style' => 'mosaic']]]))
             ->call('save')
             ->assertHasNoFormErrors();
 
         $design = app(DraftSpecFactory::class)->make($site->fresh())['theme']['design'];
         $this->assertSame('technique', $design['font_pair']);
         $this->assertSame('dark', $design['header']);
+        $this->assertSame('burger', $design['nav_layout']);
+        $this->assertSame('mosaic', $design['gallery_style']);
+    }
+
+    public function test_structure_pickers_show_a_thumbnail_for_each_choice(): void
+    {
+        Livewire::test(EditSiteDesign::class, ['record' => $this->siteWithDraft()->getRouteKey()])
+            ->assertSee('Menu latéral à gauche')
+            ->assertSee('Photo plein écran, texte encadré')
+            ->assertSee('<svg', false);
     }
 
     public function test_built_site_embeds_and_preloads_only_the_chosen_fonts(): void
@@ -101,6 +111,43 @@ class EditSiteDesignTest extends TestCase
         $this->assertCount(2, $fonts);
         $this->assertMatchesRegularExpression('#<link rel="preload" href="/assets/fonts/lora\.[a-f0-9]+\.woff2" as="font"#', File::get($result->path.'/index.html'));
         $this->assertSame([], $result->errors());
+    }
+
+    public function test_choosing_a_theme_applies_its_structure_and_keeps_the_site_colors_unless_asked(): void
+    {
+        $site = $this->siteWithDraft();
+
+        Livewire::test(EditSiteDesign::class, ['record' => $site->getRouteKey()])
+            ->assertSee('Terroir')
+            ->call('applyTemplate', 'terroir');
+
+        $design = $site->fresh()->draft_spec['theme']['design'];
+        $this->assertSame('terroir', $design['template']);
+        $this->assertSame('cream', $design['surface']);
+        $this->assertSame('boxed', $design['page_layout']);
+        $this->assertSame('#1d4ed8', $design['primary']);
+
+        Livewire::test(EditSiteDesign::class, ['record' => $site->getRouteKey()])
+            ->set('keepColors', false)
+            ->call('applyTemplate', 'studio');
+
+        $design = $site->fresh()->draft_spec['theme']['design'];
+        $this->assertSame('#18181b', $design['primary']);
+        $this->assertSame('sidebar_left', $design['nav_layout']);
+    }
+
+    public function test_previewing_a_template_builds_it_without_changing_the_site(): void
+    {
+        $site = $this->siteWithDraft();
+        $before = $site->draft_spec;
+
+        Livewire::test(EditSiteDesign::class, ['record' => $site->getRouteKey()])->call('previewTemplate', 'chantier');
+
+        $this->assertEquals($before, $site->fresh()->draft_spec);
+        $this->get(route('filament.admin.sites.design-preview', [$site, 'chantier']))->assertOk();
+        $html = File::get(app(SiteBuilder::class)->designPreviewDirectory($site, 'chantier').'/index.html');
+        $this->assertStringContainsString('class="topbar"', $html);
+        $this->assertStringContainsString('topbar-infos', $html);
     }
 
     public function test_proposing_designs_is_disabled_without_ai(): void
@@ -121,11 +168,10 @@ class EditSiteDesignTest extends TestCase
 
     private function fakeProposals(): void
     {
-        $base = Design::fromStyle('moderne', '#1d4ed8', '#0f172a');
         $this->app->instance(AiManager::class, new AiManager(['openai' => new FakeAiProvider([['proposals' => [
-            [...$base, 'name' => 'Fidèle', 'rationale' => 'Reprend la couleur actuelle.'],
-            [...$base, 'name' => 'Terre et bois', 'rationale' => 'Tons chauds.', 'primary' => '#9a3412', 'secondary' => '#292524', 'font_pair' => 'artisanal'],
-            [...$base, 'name' => 'Nuit', 'rationale' => 'Sobre et premium.', 'header' => 'dark', 'font_pair' => 'classique'],
+            ['template' => 'horizon', 'name' => 'Fidèle', 'rationale' => 'Reprend la couleur actuelle.', 'primary' => '#1d4ed8', 'secondary' => '#0f172a'],
+            ['template' => 'atelier', 'name' => 'Terre et bois', 'rationale' => 'Tons chauds.', 'primary' => '#9a3412', 'secondary' => '#292524'],
+            ['template' => 'prestige', 'name' => 'Nuit', 'rationale' => 'Sobre et premium.', 'primary' => '#a16207', 'secondary' => '#1c1917'],
         ]]], 'openai')]));
     }
 }

@@ -1,6 +1,13 @@
 @php
     /** @var \App\Domain\Build\RenderContext $ctx */
     $site = $ctx->site();
+    $sidebar = in_array($design['nav_layout'], ['sidebar_left', 'sidebar_right'], true);
+    $firstSection = $page['sections'][0] ?? [];
+    $headerOver = ! $sidebar
+        && $design['header_overlay'] === 'yes'
+        && ($firstSection['type'] ?? null) === 'hero'
+        && in_array($firstSection['variant'] ?? null, ['image', 'boxed'], true)
+        && $ctx->media($firstSection['image'] ?? null);
 @endphp
 <!doctype html>
 <html lang="fr" class="no-js">
@@ -34,12 +41,16 @@
 </head>
 <body class="{{ \App\Domain\Sites\Design::bodyClasses($design) }} page-{{ $page['key'] }}">
 <a class="skip-link" href="#contenu">Aller au contenu</a>
+<div class="site-shell{{ $headerOver ? ' header-over' : '' }}">
 @include('site::themes.artisan.partials.header')
+<div class="site-content">
 <main id="contenu">
 @foreach ($page['sections'] as $section)
 @includeFirst(['site::themes.artisan.sections.'.$section['type'], 'site::shared.sections.'.$section['type']], ['section' => $section, 'index' => $loop->index])
 @endforeach
 </main>
 @include('site::themes.artisan.partials.footer')
+</div>
+</div>
 </body>
 </html>

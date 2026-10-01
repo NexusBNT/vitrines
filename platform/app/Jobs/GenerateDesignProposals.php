@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Domain\Build\BuildPreview;
 use App\Domain\Generation\Design\DesignProposer;
+use App\Domain\Generation\GenerationProgress;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\AuditLog;
 use App\Models\Site;
@@ -22,6 +23,8 @@ class GenerateDesignProposals implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
+    public const LABEL = 'Propositions de design';
+
     public int $tries = 1;
 
     public int $timeout = 600;
@@ -37,7 +40,9 @@ class GenerateDesignProposals implements ShouldBeUnique, ShouldQueue
 
     public function handle(DesignProposer $proposer, BuildPreview $preview): void
     {
+        GenerationProgress::start($this->site, 'design', self::LABEL, ['Propositions de l\'IA', 'Aperçus des propositions']);
         $proposals = $proposer->propose($this->site, $this->instructions);
+        GenerationProgress::step($this->site, 'Aperçus des propositions');
 
         foreach ($proposals as $index => $design) {
             $preview->designProposal($this->site, $index, $design);
@@ -57,10 +62,14 @@ class GenerateDesignProposals implements ShouldBeUnique, ShouldQueue
                     Action::make('design')->label('Comparer et choisir')->url(SiteResource::getUrl('design', ['record' => $this->site]))->button(),
                 ]),
         );
+
+        GenerationProgress::finish($this->site);
     }
 
     public function failed(?Throwable $exception): void
     {
+        GenerationProgress::fail($this->site, $exception?->getMessage());
+
         $this->notify(
             Notification::make()
                 ->title('Les propositions de design ont échoué : '.$this->site->brief['business_name'])

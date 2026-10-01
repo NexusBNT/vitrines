@@ -66,6 +66,7 @@ class QualityChecker
                     'services', 'faq', 'highlights' => empty($section['items']),
                     'gallery' => empty($section['images']),
                     'about' => empty($section['paragraphs']),
+                    'content' => empty($section['blocks']),
                     default => false,
                 };
 

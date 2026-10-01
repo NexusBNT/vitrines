@@ -1,6 +1,9 @@
-@php($variant = $ctx->media($section['image'] ?? null) ? ($section['variant'] ?? 'split') : 'plain')
-<section class="hero hero--{{ $variant }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
-    @if ($variant === 'image')
+@php
+    $variant = $ctx->media($section['image'] ?? null) ? ($section['variant'] ?? 'split') : 'plain';
+    $background = in_array($variant, ['image', 'boxed'], true);
+@endphp
+<section class="hero hero--{{ str_replace('_', '-', $variant) }}{{ $variant === 'boxed' ? ' hero--image' : '' }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
+    @if ($background)
         <div class="hero-bg">{{ $ctx->picture($section['image'], '100vw', priority: true) }}</div>
     @endif
     <div class="container hero-inner">
@@ -16,8 +19,8 @@
                 <a class="button button-secondary" href="{{ $ctx->contactUrl() }}">{{ $section['cta_label'] ?? 'Demander un contact' }}</a>
             </div>
         </div>
-        @if ($variant === 'split')
-            <div class="hero-media">{{ $ctx->picture($section['image'], '(min-width: 900px) 50vw, 100vw', priority: true) }}</div>
+        @if (in_array($variant, ['split', 'split_reverse', 'stacked'], true))
+            <div class="hero-media">{{ $ctx->picture($section['image'], $variant === 'stacked' ? '100vw' : '(min-width: 900px) 50vw, 100vw', priority: true) }}</div>
         @endif
     </div>
 </section>

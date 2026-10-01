@@ -21,3 +21,7 @@ Chaque consigne d'image doit donc respecter :
 
 - `prompt` : consigne détaillée en anglais pour le générateur d'images (sujet, cadrage, lumière, matières, ambiance), qui reprend les interdits ci-dessus sous forme explicite (« no people faces, no text, no logos »).
 - `alt` : texte alternatif en français, 60 à 125 caractères, qui décrit l'image comme une illustration (par exemple « Illustration : outils de plomberie posés sur un plan de travail »), sans laisser penser qu'il s'agit d'une réalisation de l'entreprise.
+
+## Direction photo
+
+Si une `direction_photo` est fournie, elle vient du modèle de site choisi : toutes les images doivent la suivre (lumière, tonalité, ambiance) pour que le site reste cohérent d'une image à l'autre. Reprends-la dans chaque consigne, adaptée au sujet de l'emplacement.

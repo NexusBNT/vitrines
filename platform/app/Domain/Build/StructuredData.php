@@ -111,12 +111,13 @@ class StructuredData
      */
     private function breadcrumb(RenderContext $context, array $page): array
     {
-        return [
-            '@type' => 'BreadcrumbList',
-            'itemListElement' => [
-                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Accueil', 'item' => $context->absoluteUrl('home')],
-                ['@type' => 'ListItem', 'position' => 2, 'name' => $page['nav_label'], 'item' => $context->absoluteUrl($page['key'])],
-            ],
-        ];
+        $trail = array_filter([$context->parentOf($page), $page]);
+        $items = [['@type' => 'ListItem', 'position' => 1, 'name' => 'Accueil', 'item' => $context->absoluteUrl('home')]];
+
+        foreach (array_values($trail) as $index => $crumb) {
+            $items[] = ['@type' => 'ListItem', 'position' => $index + 2, 'name' => $crumb['nav_label'], 'item' => $context->absoluteUrl($crumb['key'])];
+        }
+
+        return ['@type' => 'BreadcrumbList', 'itemListElement' => $items];
     }
 }

@@ -8,6 +8,7 @@
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
+        "@vitejs/plugin-react": "^6.1.1",
         "concurrently": "^10.0.3",
         "laravel-vite-plugin": "^3.1",
         "tailwindcss": "^4.0.0",
@@ -15,5 +16,30 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "@floating-ui/dom": "^1.8.0",
+        "@mantine/core": "^9.6.3",
+        "@mantine/dropzone": "^9.6.3",
+        "@mantine/hooks": "^9.6.3",
+        "@mantine/modals": "^9.6.3",
+        "@mantine/notifications": "^9.6.3",
+        "@tabler/icons-react": "^3.48.0",
+        "@tiptap/core": "^3.31.4",
+        "@tiptap/extension-collaboration": "^3.31.4",
+        "@tiptap/extension-document": "^3.31.4",
+        "@tiptap/extension-drag-handle": "^3.31.4",
+        "@tiptap/extension-drag-handle-react": "^3.31.4",
+        "@tiptap/extension-node-range": "^3.31.4",
+        "@tiptap/extensions": "^3.31.4",
+        "@tiptap/pm": "^3.31.4",
+        "@tiptap/react": "^3.31.4",
+        "@tiptap/starter-kit": "^3.31.4",
+        "@tiptap/suggestion": "^3.31.4",
+        "@tiptap/y-tiptap": "^3.0.9",
+        "diff": "^9.0.0",
+        "react": "^19.3.0",
+        "react-arborist": "^3.16.0",
+        "react-dom": "^19.3.0"
     }
 }

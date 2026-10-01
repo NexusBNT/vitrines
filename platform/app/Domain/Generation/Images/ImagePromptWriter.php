@@ -5,6 +5,7 @@ namespace App\Domain\Generation\Images;
 use App\Domain\Generation\AiException;
 use App\Domain\Generation\AiManager;
 use App\Domain\Generation\AiRequest;
+use App\Domain\Sites\SiteTemplates;
 use App\Models\Site;
 use Illuminate\Support\Facades\File;
 
@@ -25,15 +26,17 @@ class ImagePromptWriter
     public function write(Site $site, array $slots, array $design): array
     {
         $brief = $site->brief;
+        $style = SiteTemplates::imageStyle($design['template'] ?? null);
 
-        $facts = json_encode([
+        $facts = json_encode(array_filter([
             'entreprise' => $brief['business_name'],
             'activite' => $brief['activity'],
             'description' => $brief['description'] ?? null,
             'ville' => $brief['city'],
             'couleurs_du_site' => array_values(array_filter([$design['primary'] ?? null, $design['secondary'] ?? null])),
+            'direction_photo' => $style,
             'emplacements' => $slots,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        ], fn (mixed $value): bool => $value !== null), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         $response = $this->ai->generate(
             'image_prompts',
@@ -67,7 +70,7 @@ class ImagePromptWriter
         foreach ($response->data['images'] as $image) {
             if (isset($slots[$image['slot']]) && filled($image['prompt'])) {
                 $prompts[$image['slot']] = [
-                    'prompt' => trim($image['prompt']).' Photorealistic editorial photography. No identifiable people or faces, no text, no logos, no brand names.',
+                    'prompt' => trim($image['prompt']).($style !== null ? ' Visual direction: '.$style.'.' : '').' Photorealistic editorial photography. No identifiable people or faces, no text, no logos, no brand names.',
                     'alt' => mb_substr(trim($image['alt']), 0, 250),
                 ];
             }

@@ -26,23 +26,87 @@ final class Design
     ];
 
     /**
-     * Choix possibles pour chaque jeton, avec leur libellé pour l'administration.
+     * Jetons de structure : ils changent la disposition des éléments (position du menu,
+     * type de bandeau, agencement des sections, pied de page).
      *
      * @var array<string, array<string, string>>
      */
-    public const OPTIONS = [
+    public const STRUCTURE = [
+        'nav_layout' => ['top' => 'Menu en haut', 'centered' => 'Logo centré, menu dessous', 'sidebar_left' => 'Menu latéral à gauche', 'sidebar_right' => 'Menu latéral à droite', 'burger' => 'Menu replié (burger)'],
+        'topbar' => ['none' => 'Sans barre d\'infos', 'infos' => 'Barre d\'infos au-dessus du menu'],
+        'header_overlay' => ['no' => 'En-tête au-dessus du bandeau', 'yes' => 'En-tête transparent sur la photo'],
+        'hero_layout' => ['split' => 'Texte à gauche, photo à droite', 'split_reverse' => 'Photo à gauche, texte à droite', 'image' => 'Photo plein écran', 'boxed' => 'Photo plein écran, texte encadré', 'stacked' => 'Titre centré, grande photo dessous', 'plain' => 'Texte seul'],
+        'hero_align' => ['left' => 'Texte aligné à gauche', 'center' => 'Texte centré'],
+        'services_style' => ['cards' => 'Cartes', 'tiles' => 'Tuiles photo', 'numbered' => 'Liste numérotée', 'rows' => 'Lignes'],
+        'about_layout' => ['split' => 'Texte puis photo', 'split_reverse' => 'Photo puis texte', 'banner' => 'Photo en bannière', 'overlap' => 'Texte posé sur la photo'],
+        'highlights_style' => ['columns' => 'Colonnes', 'boxes' => 'Encadrés', 'band' => 'Bandeau en couleur'],
+        'gallery_style' => ['grid' => 'Grille régulière', 'masonry' => 'Mosaïque libre', 'mosaic' => 'Photo vedette'],
+        'cta_style' => ['band' => 'Bandeau pleine largeur', 'card' => 'Encart arrondi', 'minimal' => 'Sobre, centré'],
+        'footer_layout' => ['columns' => 'Colonnes', 'centered' => 'Centré', 'minimal' => 'Une ligne'],
+        'page_layout' => ['full' => 'Pleine largeur', 'boxed' => 'Page encadrée'],
+    ];
+
+    /**
+     * Jetons de style : couleurs d'ambiance, formes, typographie, espacements.
+     *
+     * @var array<string, array<string, string>>
+     */
+    public const STYLE = [
+        'surface' => ['white' => 'Fond blanc', 'cream' => 'Fond crème', 'dark' => 'Fond sombre'],
+        'header' => ['light' => 'Clair', 'primary' => 'Couleur principale', 'dark' => 'Sombre'],
+        'hero_background' => ['tint' => 'Teinte légère', 'gradient' => 'Dégradé doux', 'primary' => 'Couleur principale', 'dark' => 'Sombre'],
+        'section_alt' => ['tint' => 'Teinte de la couleur principale', 'neutral' => 'Gris neutre', 'warm' => 'Beige chaud', 'none' => 'Fond uni'],
+        'footer' => ['dark' => 'Sombre', 'brand' => 'Couleur secondaire', 'light' => 'Clair'],
         'radius' => ['none' => 'Angles droits', 'small' => 'Arrondi léger', 'medium' => 'Arrondi moyen', 'large' => 'Arrondi prononcé'],
         'buttons' => ['pill' => 'Pilule', 'rounded' => 'Arrondis', 'square' => 'Carrés'],
         'shadow' => ['none' => 'Aucune ombre', 'soft' => 'Ombres douces', 'strong' => 'Ombres marquées'],
-        'header' => ['light' => 'Clair', 'primary' => 'Couleur principale', 'dark' => 'Sombre'],
-        'hero_layout' => ['split' => 'Texte et photo côte à côte', 'image' => 'Photo plein écran', 'plain' => 'Texte seul'],
-        'hero_background' => ['tint' => 'Teinte légère', 'gradient' => 'Dégradé doux', 'primary' => 'Couleur principale', 'dark' => 'Sombre'],
         'cards' => ['elevated' => 'Ombrées', 'bordered' => 'Bordées', 'accent' => 'Liseré de couleur', 'flat' => 'À plat'],
-        'section_alt' => ['tint' => 'Teinte de la couleur principale', 'neutral' => 'Gris neutre', 'warm' => 'Beige chaud', 'none' => 'Fond uni'],
-        'footer' => ['dark' => 'Sombre', 'brand' => 'Couleur secondaire', 'light' => 'Clair'],
+        'titles' => ['left' => 'À gauche', 'centered' => 'Centrés', 'accent' => 'Soulignés d\'un trait de couleur'],
         'headings' => ['normal' => 'Casse normale', 'uppercase' => 'Majuscules'],
         'density' => ['comfortable' => 'Standard', 'airy' => 'Aéré'],
     ];
+
+    /**
+     * Tous les jetons à choix fermé.
+     *
+     * @var array<string, array<string, string>>
+     */
+    public const OPTIONS = self::STRUCTURE + self::STYLE;
+
+    /**
+     * @var array<string, string>
+     */
+    public const LABELS = [
+        'nav_layout' => 'Navigation',
+        'topbar' => 'Barre d\'infos',
+        'header_overlay' => 'En-tête sur la photo',
+        'hero_layout' => 'Bandeau d\'accueil',
+        'hero_align' => 'Alignement du bandeau',
+        'services_style' => 'Services',
+        'about_layout' => 'Présentation',
+        'highlights_style' => 'Points forts',
+        'gallery_style' => 'Galerie',
+        'cta_style' => 'Appel à l\'action',
+        'footer_layout' => 'Pied de page',
+        'page_layout' => 'Largeur de page',
+        'surface' => 'Fond du site',
+        'header' => 'Couleur de l\'en-tête',
+        'hero_background' => 'Fond du bandeau sans photo',
+        'section_alt' => 'Fond des sections alternées',
+        'footer' => 'Couleur du pied de page',
+        'radius' => 'Arrondis',
+        'buttons' => 'Boutons',
+        'shadow' => 'Ombres',
+        'cards' => 'Cartes',
+        'titles' => 'Titres de section',
+        'headings' => 'Casse des titres',
+        'density' => 'Espacement',
+    ];
+
+    /**
+     * Structure historique : les designs enregistrés avant l'arrivée de ces jetons gardent leur rendu.
+     */
+    private const STRUCTURE_DEFAULTS = ['nav_layout' => 'top', 'topbar' => 'none', 'header_overlay' => 'no', 'hero_align' => 'left', 'services_style' => 'cards', 'about_layout' => 'split', 'highlights_style' => 'columns', 'gallery_style' => 'grid', 'cta_style' => 'band', 'footer_layout' => 'columns', 'page_layout' => 'full', 'surface' => 'white', 'titles' => 'left'];
 
     private const PRESETS = [
         'sobre' => ['font_pair' => 'system', 'radius' => 'small', 'buttons' => 'square', 'shadow' => 'none', 'header' => 'light', 'hero_layout' => 'split', 'hero_background' => 'tint', 'cards' => 'bordered', 'section_alt' => 'neutral', 'footer' => 'dark', 'headings' => 'normal', 'density' => 'comfortable'],
@@ -59,6 +123,7 @@ final class Design
     public static function fromStyle(?string $style, string $primary, ?string $secondary = null): array
     {
         return [
+            ...self::STRUCTURE_DEFAULTS,
             ...(self::PRESETS[$style] ?? self::PRESETS['moderne']),
             'primary' => $primary,
             'secondary' => $secondary,
@@ -98,7 +163,13 @@ final class Design
         $normalized['font_pair'] = array_key_exists($design['font_pair'] ?? '', self::FONT_PAIRS) ? $design['font_pair'] : $fallback['font_pair'];
 
         foreach (self::OPTIONS as $token => $choices) {
-            $normalized[$token] = array_key_exists($design[$token] ?? '', $choices) ? $design[$token] : $fallback[$token];
+            $normalized[$token] = array_key_exists($design[$token] ?? '', $choices) ? $design[$token] : ($fallback[$token] ?? self::STRUCTURE_DEFAULTS[$token] ?? array_key_first($choices));
+        }
+
+        $template = collect([$design['template'] ?? null, $fallback['template'] ?? null])->first(fn (mixed $key): bool => is_string($key) && SiteTemplates::exists($key));
+
+        if ($template !== null) {
+            $normalized['template'] = $template;
         }
 
         foreach (['name', 'rationale'] as $text) {
@@ -111,14 +182,22 @@ final class Design
     }
 
     /**
-     * Classes CSS posées sur <body> pour les variantes structurelles.
+     * Classes CSS posées sur <body> : une par jeton à choix fermé (ex. « nav-sidebar-left »).
      *
      * @param  array<string, mixed>  $design
      */
     public static function bodyClasses(array $design): string
     {
-        return collect(['buttons' => 'btn', 'header' => 'hdr', 'hero_background' => 'hero-bg', 'cards' => 'cards', 'section_alt' => 'alt', 'footer' => 'ftr', 'headings' => 'headings', 'shadow' => 'shadow'])
-            ->map(fn (string $prefix, string $token): string => $prefix.'-'.$design[$token])
+        $prefixes = [
+            'nav_layout' => 'nav', 'topbar' => 'topbar', 'header_overlay' => 'overlay', 'hero_align' => 'hero-align',
+            'services_style' => 'svc', 'about_layout' => 'about', 'highlights_style' => 'hl', 'gallery_style' => 'gal',
+            'cta_style' => 'action', 'footer_layout' => 'fl', 'page_layout' => 'pl', 'surface' => 'surface',
+            'header' => 'hdr', 'hero_background' => 'hero-bg', 'section_alt' => 'alt', 'footer' => 'ftr',
+            'buttons' => 'btn', 'shadow' => 'shadow', 'cards' => 'cards', 'titles' => 'titles', 'headings' => 'headings',
+        ];
+
+        return collect($prefixes)
+            ->map(fn (string $prefix, string $token): string => $prefix.'-'.str_replace('_', '-', $design[$token]))
             ->implode(' ');
     }
 

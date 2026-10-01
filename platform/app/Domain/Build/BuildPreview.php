@@ -34,7 +34,7 @@ class BuildPreview
      *
      * @param  array<string, mixed>  $design
      */
-    public function designProposal(Site $site, int $proposal, array $design): BuildResult
+    public function designProposal(Site $site, int|string $proposal, array $design): BuildResult
     {
         $spec = ApplyDesign::onSpec($site->draft_spec ?? $this->drafts->make($site), $design);
         $target = BuildTarget::preview(config('app.url'), parse_url($this->designUrl($site, $proposal), PHP_URL_PATH).'/');
@@ -42,7 +42,7 @@ class BuildPreview
         return $this->builder->build($site, $target, $spec, $this->builder->designPreviewDirectory($site, $proposal));
     }
 
-    public function designUrl(Site $site, int $proposal): string
+    public function designUrl(Site $site, int|string $proposal): string
     {
         return route('filament.admin.sites.design-preview', ['site' => $site, 'proposal' => $proposal]);
     }

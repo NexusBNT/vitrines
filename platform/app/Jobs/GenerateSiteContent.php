@@ -3,8 +3,9 @@
 namespace App\Jobs;
 
 use App\Domain\Build\BuildPreview;
+use App\Domain\Content\Revisions;
+use App\Domain\Generation\GenerationProgress;
 use App\Domain\Generation\SiteContent\SiteContentGenerator;
-use App\Filament\Resources\Sites\SiteResource;
 use App\Models\AuditLog;
 use App\Models\Site;
 use App\Models\User;
@@ -22,6 +23,8 @@ class GenerateSiteContent implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
+    public const LABEL = 'Rédaction des textes par l\'IA';
+
     public int $tries = 1;
 
     public int $timeout = 900;
@@ -37,17 +40,19 @@ class GenerateSiteContent implements ShouldBeUnique, ShouldQueue
 
     public function handle(SiteContentGenerator $generator, BuildPreview $preview): void
     {
+        GenerationProgress::start($this->site, 'content', self::LABEL, ['Rédaction des textes', 'Prévisualisation']);
         $result = $generator->generate($this->site, $this->instructions);
 
-        $this->site->update([
+        Revisions::as('ai', fn () => $this->site->update([
             'draft_spec' => $result['spec'],
             'settings' => [...($this->site->settings ?? []), 'last_generation' => [
                 'at' => now()->toIso8601String(),
                 'warnings' => $result['warnings'],
             ]],
-        ]);
+        ]));
         AuditLog::record('content_generated', $this->site);
 
+        GenerationProgress::step($this->site, 'Prévisualisation');
         $build = $preview->handle($this->site);
 
         $this->notify(
@@ -57,13 +62,17 @@ class GenerateSiteContent implements ShouldBeUnique, ShouldQueue
                 ->success()
                 ->actions([
                     Action::make('preview')->label('Prévisualiser')->url($preview->url($this->site), shouldOpenInNewTab: true)->button(),
-                    Action::make('edit')->label('Modifier les textes')->url(SiteResource::getUrl('content', ['record' => $this->site])),
+                    Action::make('edit')->label('Modifier les pages')->url(route('filament.admin.sites.editor', $this->site)),
                 ]),
         );
+
+        GenerationProgress::finish($this->site);
     }
 
     public function failed(?Throwable $exception): void
     {
+        GenerationProgress::fail($this->site, $exception?->getMessage());
+
         $this->notify(
             Notification::make()
                 ->title('La rédaction a échoué : '.$this->site->brief['business_name'])

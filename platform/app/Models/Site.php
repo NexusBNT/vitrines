@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Content\Revisions;
 use App\Enums\SiteStatus;
 use App\Models\Concerns\Auditable;
 use Database\Factories\SiteFactory;
@@ -52,6 +53,16 @@ class Site extends Model
         static::creating(function (Site $site): void {
             $site->public_key ??= Str::random(32);
         });
+
+        static::created(function (Site $site): void {
+            Revisions::capture($site, null);
+        });
+
+        static::updated(function (Site $site): void {
+            if ($site->wasChanged('draft_spec')) {
+                Revisions::capture($site, $site->getOriginal('draft_spec'));
+            }
+        });
     }
 
     /**
@@ -98,5 +109,10 @@ class Site extends Model
     public function media(): HasMany
     {
         return $this->hasMany(Media::class)->orderBy('sort_order');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(SiteRevision::class);
     }
 }

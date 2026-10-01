@@ -39,6 +39,7 @@ return [
     | design       : propositions de direction artistique (jetons de design).
     | image_prompts: description des illustrations à générer (offre avec génération intégrale).
     | alt_text     : description des photos (texte alternatif, usage).
+    | editor       : assistant de l'éditeur de pages (réécriture, rédaction de blocs, référencement).
     |
     | « model » à null = modèle par défaut du fournisseur.
     |
@@ -60,6 +61,10 @@ return [
         'alt_text' => [
             'provider' => env('AI_ALT_TEXT_PROVIDER', 'claude'),
             'model' => env('AI_ALT_TEXT_MODEL'),
+        ],
+        'editor' => [
+            'provider' => env('AI_EDITOR_PROVIDER', 'claude'),
+            'model' => env('AI_EDITOR_MODEL'),
         ],
     ],
 

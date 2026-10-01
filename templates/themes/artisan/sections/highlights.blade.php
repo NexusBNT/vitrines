@@ -1,4 +1,4 @@
-<section class="section {{ $index % 2 === 0 ? 'section--alt' : '' }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
+<section class="section section-highlights {{ $index % 2 === 0 ? 'section--alt' : '' }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
     <div class="container">
         @include('site::themes.artisan.partials.section-heading')
         <ul class="highlights">

@@ -101,13 +101,17 @@ class SiteBuilder
         return config('vitrines.builds_path').'/'.$site->directoryName();
     }
 
-    public function designPreviewDirectory(Site $site, int $proposal): string
+    public function designPreviewDirectory(Site $site, int|string $proposal): string
     {
         return config('vitrines.builds_path').'/'.$site->directoryName().'_designs/'.$proposal;
     }
 
     public function latestBuildDirectory(Site $site): ?string
     {
+        if (! File::isDirectory($this->siteBuildsDirectory($site))) {
+            return null;
+        }
+
         $directories = File::directories($this->siteBuildsDirectory($site));
         $directories = array_values(array_filter($directories, fn (string $directory): bool => ! str_ends_with($directory, '.tmp')));
         sort($directories);

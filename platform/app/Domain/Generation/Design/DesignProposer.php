@@ -8,6 +8,7 @@ use App\Domain\Generation\AiRequest;
 use App\Domain\Sites\ColorPalette;
 use App\Domain\Sites\Design;
 use App\Domain\Sites\DraftSpecFactory;
+use App\Domain\Sites\SiteTemplates;
 use App\Enums\MediaCategory;
 use App\Enums\MediaStatus;
 use App\Enums\SiteStyle;
@@ -18,7 +19,9 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Demande à l'IA trois directions de design, exprimées uniquement avec les jetons de Design.
+ * Demande à l'IA trois directions de design : chacune part d'un thème (SiteTemplates) dont l'IA
+ * ajuste la structure (navigation, bandeau, agencement des sections), le style et les couleurs,
+ * uniquement parmi les choix fermés de Design.
  */
 class DesignProposer
 {
@@ -49,7 +52,7 @@ class DesignProposer
                     'media_type' => 'image/jpeg',
                     'data' => base64_encode(Storage::disk(config('vitrines.media.disk'))->get($media->variants[0]['files']['jpg'])),
                 ])->values()->all(),
-                maxTokens: 4000,
+                maxTokens: 6000,
             ),
             $site,
             ['instructions' => $instructions, 'photos' => $photos->pluck('id')->all()],
@@ -61,8 +64,9 @@ class DesignProposer
             throw new AiException('L\'IA n\'a pas renvoyé assez de propositions de design.', true);
         }
 
-        return array_map(function (array $proposal) use ($current, $photos): array {
-            $design = Design::normalize($proposal, $current);
+        return array_map(function (array $proposal) use ($photos): array {
+            $template = SiteTemplates::exists($proposal['template'] ?? null) ? $proposal['template'] : array_key_first(SiteTemplates::ALL);
+            $design = Design::normalize($proposal, SiteTemplates::design($template));
             $design['primary'] = $this->readablePrimary($design['primary']);
 
             if ($photos->isEmpty()) {
@@ -118,7 +122,15 @@ class DesignProposer
             'photos_jointes' => $hasPhotos ? 'oui' : 'non',
         ]);
 
-        $prompt = "Entreprise :\n".json_encode($facts, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $templates = collect(SiteTemplates::ALL)->map(fn (array $template, string $key): array => [
+            'nom' => $template['label'],
+            'description' => $template['description'],
+            'ideal_pour' => $template['ideal_for'],
+            'reglages' => SiteTemplates::design($key),
+        ])->all();
+
+        $json = fn (array $data): string => json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $prompt = "Entreprise :\n".$json($facts)."\n\nThèmes de départ (avec leurs réglages complets) :\n".$json($templates);
 
         if (filled($instructions)) {
             $prompt .= "\n\nConsignes de l'équipe :\n".trim($instructions);
@@ -133,6 +145,7 @@ class DesignProposer
     private function schema(): array
     {
         $properties = [
+            'template' => ['type' => 'string', 'enum' => array_keys(SiteTemplates::ALL), 'description' => 'Thème de départ'],
             'name' => ['type' => 'string'],
             'rationale' => ['type' => 'string'],
             'primary' => ['type' => 'string', 'description' => 'Couleur #rrggbb'],
@@ -141,7 +154,7 @@ class DesignProposer
         ];
 
         foreach (Design::OPTIONS as $token => $choices) {
-            $properties[$token] = ['type' => 'string', 'enum' => array_keys($choices), 'description' => $this->describe($choices)];
+            $properties[$token] = ['type' => 'string', 'enum' => array_keys($choices), 'description' => Design::LABELS[$token].' : '.$this->describe($choices)];
         }
 
         $proposal = [

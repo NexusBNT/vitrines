@@ -77,13 +77,7 @@ class ContentValidator
             $errors[] = 'Le texte doit être brut : pas de HTML ni de Markdown.';
         }
 
-        $facts = $this->briefText($brief);
-
-        foreach (self::CLAIMS as $label => $pattern) {
-            if (preg_match($pattern, $text, $match) && ! preg_match($pattern, $facts)) {
-                $errors[] = "Le texte affirme {$label} (« {$match[0]} ») alors que cette information n'est pas fournie : retire-la.";
-            }
-        }
+        array_push($errors, ...$this->unsupportedClaims($text, $this->briefText($brief)));
 
         $city = Str::lower(Str::ascii($brief['city'] ?? ''));
 
@@ -92,6 +86,24 @@ class ContentValidator
         }
 
         return ['errors' => $errors, 'warnings' => $warnings];
+    }
+
+    /**
+     * Affirmations présentes dans $text mais absentes des faits connus.
+     *
+     * @return list<string>
+     */
+    public function unsupportedClaims(string $text, string $facts): array
+    {
+        $errors = [];
+
+        foreach (self::CLAIMS as $label => $pattern) {
+            if (preg_match($pattern, $text, $match) && ! preg_match($pattern, $facts)) {
+                $errors[] = "Le texte affirme {$label} (« {$match[0]} ») alors que cette information n'est pas fournie : retire-la.";
+            }
+        }
+
+        return $errors;
     }
 
     /**
@@ -139,9 +151,11 @@ class ContentValidator
     }
 
     /**
+     * Faits fournis par le client (seule source autorisée pour les affirmations sensibles).
+     *
      * @param  array<string, mixed>  $brief
      */
-    private function briefText(array $brief): string
+    public function briefText(array $brief): string
     {
         $services = collect($brief['services'] ?? [])->map(fn (array $service): string => ($service['name'] ?? '').' '.($service['description'] ?? ''))->implode("\n");
 

@@ -1,43 +1,37 @@
 @php
     /** @var list<array<string, mixed>> $proposals */
 @endphp
-<div style="display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+@include('filament.sites.design-styles')
+<div class="dz-themes">
     @foreach ($proposals as $index => $proposal)
-        <x-filament::section :compact="true">
-            <x-slot name="heading">{{ $proposal['name'] ?? 'Proposition '.($index + 1) }}</x-slot>
-            @if ($proposal['is_current'])
-                <x-slot name="afterHeader"><x-filament::badge color="success">Design actuel</x-filament::badge></x-slot>
-            @endif
-
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
-                @foreach ($proposal['swatches'] as $label => $color)
-                    <div style="flex:1;">
-                        <div style="height:44px;border-radius:8px;border:1px solid rgb(0 0 0 / 10%);background:{{ $color }};"></div>
-                        <div style="font-size:11px;opacity:.7;margin-top:4px;">{{ $label }} {{ $color }}</div>
-                    </div>
-                @endforeach
+        <article class="dz-theme {{ $proposal['is_current'] ? 'is-current' : '' }}">
+            <div class="dz-theme-thumb">{!! $proposal['svg'] !!}</div>
+            <div class="dz-theme-body">
+                <div class="dz-theme-title">
+                    <span>{{ $proposal['name'] ?? 'Proposition '.($index + 1) }}</span>
+                    @if ($proposal['is_current'])
+                        <x-filament::badge color="success" size="sm">Actuel</x-filament::badge>
+                    @endif
+                </div>
+                <p class="dz-theme-meta">{{ $proposal['summary'] }} · {{ $proposal['fonts'] }}</p>
+                @if (! empty($proposal['rationale']))
+                    <p class="dz-theme-text" style="font-style:italic;">{{ $proposal['rationale'] }}</p>
+                @endif
+                <div class="dz-theme-actions">
+                    <x-filament::button tag="a" :href="$proposal['preview_url']" target="_blank" color="gray" icon="heroicon-o-eye" size="sm">
+                        Aperçu
+                    </x-filament::button>
+                    <x-filament::button
+                        wire:click="applyProposal({{ $index }})"
+                        wire:confirm="Appliquer cette proposition ? La structure et le style actuels seront remplacés."
+                        icon="heroicon-o-check"
+                        size="sm"
+                        :disabled="$proposal['is_current']"
+                    >
+                        Choisir
+                    </x-filament::button>
+                </div>
             </div>
-
-            <p style="font-size:13px;margin:0 0 6px;"><strong>Polices :</strong> {{ $proposal['fonts'] }}</p>
-            <p style="font-size:13px;margin:0 0 12px;opacity:.8;">{{ $proposal['summary'] }}</p>
-            @if (! empty($proposal['rationale']))
-                <p style="font-size:13px;margin:0 0 16px;font-style:italic;">{{ $proposal['rationale'] }}</p>
-            @endif
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <x-filament::button tag="a" :href="$proposal['preview_url']" target="_blank" color="gray" icon="heroicon-o-eye" size="sm">
-                    Prévisualiser
-                </x-filament::button>
-                <x-filament::button
-                    wire:click="applyProposal({{ $index }})"
-                    wire:confirm="Appliquer ce design au site ? Vos réglages de design actuels seront remplacés."
-                    icon="heroicon-o-check"
-                    size="sm"
-                    :disabled="$proposal['is_current']"
-                >
-                    Choisir
-                </x-filament::button>
-            </div>
-        </x-filament::section>
+        </article>
     @endforeach
 </div>

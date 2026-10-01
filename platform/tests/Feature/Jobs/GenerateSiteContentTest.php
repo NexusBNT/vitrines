@@ -4,6 +4,7 @@ namespace Tests\Feature\Jobs;
 
 use App\Domain\Generation\AiException;
 use App\Domain\Generation\AiManager;
+use App\Domain\Generation\GenerationProgress;
 use App\Enums\SiteStatus;
 use App\Jobs\GenerateSiteContent;
 use App\Models\Plan;
@@ -67,5 +68,7 @@ class GenerateSiteContentTest extends TestCase
         $this->assertStringStartsWith('La rédaction a échoué', $notification['title']);
         $this->assertSame('Clé API Anthropic refusée.', $notification['body']);
         $this->assertNull($site->fresh()->draft_spec);
+        $this->assertSame('failed', GenerationProgress::get($site)['status']);
+        $this->assertSame('Clé API Anthropic refusée.', GenerationProgress::get($site)['message']);
     }
 }

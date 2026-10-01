@@ -2,6 +2,7 @@
 
 namespace App\Domain\Build;
 
+use App\Domain\Content\RichText;
 use App\Models\Media;
 use Illuminate\Support\Arr;
 use Illuminate\Support\HtmlString;
@@ -85,9 +86,9 @@ class RenderContext
     }
 
     /**
-     * Liens du menu principal : pages en multi-pages, ancres de sections en une page.
+     * Liens du menu principal : pages en multi-pages (avec leurs sous-pages), ancres de sections en une page.
      *
-     * @return list<array{label: string, url: string, key: string}>
+     * @return list<array{label: string, url: string, key: string, children: list<array{label: string, url: string, key: string}>}>
      */
     public function navigation(): array
     {
@@ -98,21 +99,54 @@ class RenderContext
                     'label' => $section['nav_label'],
                     'url' => $this->url('home', $section['anchor']),
                     'key' => $section['anchor'],
+                    'children' => [],
                 ])
                 ->values()
                 ->all();
         }
 
-        return collect($this->spec['pages'])
-            ->reject(fn (array $page): bool => $page['key'] === 'home')
-            ->map(fn (array $page): array => ['label' => $page['nav_label'], 'url' => $this->url($page['key']), 'key' => $page['key']])
+        $inNav = collect($this->spec['pages'])
+            ->reject(fn (array $page): bool => $page['key'] === 'home' || ($page['in_nav'] ?? true) === false);
+        $link = fn (array $page): array => ['label' => $page['nav_label'], 'url' => $this->url($page['key']), 'key' => $page['key']];
+
+        return $inNav
+            ->filter(fn (array $page): bool => ($page['parent'] ?? null) === null)
+            ->map(fn (array $page): array => [
+                ...$link($page),
+                'children' => $inNav->filter(fn (array $child): bool => ($child['parent'] ?? null) === $page['key'])->map($link)->values()->all(),
+            ])
             ->values()
             ->all();
     }
 
+    /**
+     * Page parente d'une page (null pour une page de premier niveau).
+     *
+     * @param  array<string, mixed>  $page
+     * @return array<string, mixed>|null
+     */
+    public function parentOf(array $page): ?array
+    {
+        return isset($page['parent']) ? collect($this->spec['pages'])->firstWhere('key', $page['parent']) : null;
+    }
+
     public function contactUrl(): string
     {
-        return $this->isSinglePage() ? $this->url('home', 'contact') : $this->url('contact');
+        if (! $this->isSinglePage() && $this->hasPage('contact')) {
+            return $this->url('contact');
+        }
+
+        return $this->url('home', 'contact');
+    }
+
+    /**
+     * Blocs libres rendus en HTML (textes échappés, liens et images vérifiés).
+     *
+     * @param  list<array<string, mixed>>  $blocks
+     */
+    public function richText(array $blocks): HtmlString
+    {
+        return RichText::render($blocks, $this);
     }
 
     public function hasPage(string $key): bool

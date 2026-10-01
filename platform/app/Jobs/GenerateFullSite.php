@@ -3,12 +3,15 @@
 namespace App\Jobs;
 
 use App\Domain\Build\BuildPreview;
+use App\Domain\Content\Revisions;
 use App\Domain\Generation\AiException;
 use App\Domain\Generation\Design\DesignProposer;
+use App\Domain\Generation\GenerationProgress;
 use App\Domain\Generation\Images\AiImageGenerator;
 use App\Domain\Generation\SiteContent\SiteContentGenerator;
 use App\Domain\Sites\ApplyDesign;
 use App\Domain\Sites\DraftSpecFactory;
+use App\Domain\Sites\SiteTemplates;
 use App\Enums\PlanFeature;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Models\AuditLog;
@@ -30,6 +33,16 @@ use Throwable;
 class GenerateFullSite implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
+
+    public const LABEL = 'Génération intégrale';
+
+    private const STEP_DESIGN = 'Choix du design';
+
+    private const STEP_IMAGES = 'Création des illustrations';
+
+    private const STEP_TEXTS = 'Rédaction des textes';
+
+    private const STEP_PREVIEW = 'Prévisualisation';
 
     public int $tries = 1;
 
@@ -64,8 +77,18 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
         $warnings = [];
         $summary = [];
         $proposals = [];
+        $needsDesign = empty($this->site->settings['design']);
 
-        if (empty($this->site->settings['design'])) {
+        GenerationProgress::start($this->site, 'full', self::LABEL, array_values(array_filter([
+            $needsDesign ? self::STEP_DESIGN : null,
+            self::STEP_IMAGES,
+            self::STEP_TEXTS,
+            self::STEP_PREVIEW,
+        ])));
+
+        if ($needsDesign) {
+            GenerationProgress::step($this->site, self::STEP_DESIGN);
+
             try {
                 $proposals = $designs->propose($this->site, $this->instructions);
                 $settings = $this->site->settings ?? [];
@@ -78,6 +101,8 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
             }
         }
 
+        GenerationProgress::step($this->site, self::STEP_IMAGES);
+
         try {
             $result = $images->generate($this->site->refresh(), $drafts->design($this->site), $this->replaceIllustrations);
             $summary[] = $result['created'] > 0 ? $result['created'].' illustration(s) générée(s).' : 'Aucune illustration nécessaire.';
@@ -88,14 +113,16 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
             $warnings[] = 'Illustrations non générées : '.$exception->getMessage();
         }
 
+        GenerationProgress::step($this->site, self::STEP_TEXTS);
         $generated = $content->generate($this->site->refresh(), $this->instructions);
         array_push($warnings, ...$generated['warnings']);
 
         $settings = $this->site->settings ?? [];
         $settings['last_generation'] = ['at' => now()->toIso8601String(), 'warnings' => $warnings];
-        $this->site->update(['draft_spec' => $generated['spec'], 'settings' => $settings]);
+        Revisions::as('ai', fn () => $this->site->update(['draft_spec' => $generated['spec'], 'settings' => $settings]));
         AuditLog::record('full_site_generated', $this->site);
 
+        GenerationProgress::step($this->site, self::STEP_PREVIEW);
         $build = $preview->handle($this->site->refresh());
         $summary[] = 'Textes rédigés.';
 
@@ -113,11 +140,13 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
                     Action::make('design')->label('Comparer les designs')->url(SiteResource::getUrl('design', ['record' => $this->site])),
                 ]),
         );
+
+        GenerationProgress::finish($this->site, $warnings === [] ? null : count($warnings).' point(s) à vérifier : voir la notification.');
     }
 
     /**
      * Le design a pu être choisi avant qu'une image existe (bandeau « texte seul ») :
-     * dès qu'une image de bandeau est disponible, on la montre.
+     * dès qu'une image de bandeau est disponible, on la montre comme le prévoit le modèle.
      *
      * @param  list<array<string, mixed>>  $proposals
      * @return list<array<string, mixed>>
@@ -133,11 +162,13 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
 
         $design = $drafts->design($this->site);
 
+        $withImage = fn (array $design): array => $design['hero_layout'] === 'plain' ? [...$design, 'hero_layout' => SiteTemplates::heroLayout($design['template'] ?? null)] : $design;
+
         if ($design['hero_layout'] === 'plain') {
-            $applyDesign->handle($this->site, [...$design, 'hero_layout' => 'split']);
+            $applyDesign->handle($this->site, $withImage($design));
         }
 
-        $proposals = array_map(fn (array $proposal): array => $proposal['hero_layout'] === 'plain' ? [...$proposal, 'hero_layout' => 'split'] : $proposal, $proposals);
+        $proposals = array_map($withImage, $proposals);
 
         if ($proposals !== []) {
             $settings = $this->site->settings ?? [];
@@ -150,6 +181,8 @@ class GenerateFullSite implements ShouldBeUnique, ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
+        GenerationProgress::fail($this->site, $exception?->getMessage());
+
         $this->notify(
             Notification::make()
                 ->title('La génération intégrale a échoué : '.$this->site->brief['business_name'])

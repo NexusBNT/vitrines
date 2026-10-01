@@ -81,4 +81,14 @@ class Media extends Model
     {
         return $this->variants[0]['files'][$format] ?? null;
     }
+
+    /**
+     * Chemin de la plus grande variante ne dépassant pas $maxWidth (la plus petite à défaut).
+     */
+    public function variantPath(int $maxWidth, string $format = 'webp'): ?string
+    {
+        $variant = collect($this->variants ?? [])->last(fn (array $variant): bool => $variant['width'] <= $maxWidth) ?? ($this->variants[0] ?? null);
+
+        return $variant['files'][$format] ?? null;
+    }
 }

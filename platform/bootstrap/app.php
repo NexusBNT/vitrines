@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // L'éditeur de pages envoie du texte riche : les espaces en bordure de chaque fragment comptent.
+        $isEditorApi = fn (Request $request): bool => $request->is('admin/sites/*/editor-api', 'admin/sites/*/editor-api/*');
+        $middleware->trimStrings(except: [$isEditorApi]);
+        $middleware->convertEmptyStringsToNull(except: [$isEditorApi]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

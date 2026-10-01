@@ -1,5 +1,5 @@
 @php($image = $ctx->media($section['image'] ?? null))
-<section class="section {{ $index % 2 === 0 ? 'section--alt' : '' }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
+<section class="section section-about {{ $index % 2 === 0 ? 'section--alt' : '' }}" @isset($section['anchor']) id="{{ $section['anchor'] }}" @endisset>
     <div class="container {{ $image ? 'split' : 'narrow' }}">
         <div class="prose">
             @include('site::themes.artisan.partials.section-heading')

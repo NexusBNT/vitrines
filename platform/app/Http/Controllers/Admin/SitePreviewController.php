@@ -36,9 +36,9 @@ class SitePreviewController extends Controller
     }
 
     /**
-     * Sert l'aperçu d'une proposition de design.
+     * Sert l'aperçu d'une proposition de design (numéro) ou d'un modèle de site (clé).
      */
-    public function design(Site $site, int $proposal, string $path = ''): BinaryFileResponse
+    public function design(Site $site, string $proposal, string $path = ''): BinaryFileResponse
     {
         $root = $this->builder->designPreviewDirectory($site, $proposal);
         abort_unless(is_dir($root), 404, 'Aperçu indisponible : relancez les propositions de design.');

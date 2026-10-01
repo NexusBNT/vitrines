@@ -9,6 +9,7 @@ use App\Domain\Generation\Images\AiImageGenerator;
 use App\Domain\Generation\Providers\OpenAiImageProvider;
 use App\Domain\Sites\Design;
 use App\Domain\Sites\DraftSpecFactory;
+use App\Domain\Sites\SiteTemplates;
 use App\Enums\MediaCategory;
 use App\Enums\MediaSource;
 use App\Enums\MediaStatus;
@@ -49,6 +50,17 @@ class AiImageGeneratorTest extends TestCase
         $this->assertSame(MediaStatus::Ready, $hero->status);
         $this->assertSame('Illustration hero', $hero->alt);
         $this->assertStringContainsString('no text, no logos', $images->prompts[0]);
+    }
+
+    public function test_illustrations_follow_the_photo_direction_of_the_template(): void
+    {
+        $images = $this->fakeImages();
+        $this->fakePrompts(['hero', 'about', 'service-0', 'service-1']);
+        $site = Site::factory()->create();
+
+        app(AiImageGenerator::class)->generate($site, SiteTemplates::design('nocturne'));
+
+        $this->assertStringContainsString('Visual direction: '.SiteTemplates::imageStyle('nocturne'), $images->prompts[0]);
     }
 
     public function test_client_photos_take_priority_over_illustrations(): void

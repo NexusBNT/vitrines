@@ -13,8 +13,13 @@ final class ColorPalette
 
     private const INK = [17, 24, 39];
 
+    /** Fond des sites en surface sombre (--bg de .surface-dark). */
+    private const DARK_BG = [17, 19, 24];
+
     /**
-     * @return array{primary: string, primary_ink: string, primary_strong: string, primary_soft: string, secondary: string, secondary_ink: string}
+     * primary_light et primary_deep servent aux surfaces sombres (liens lisibles, teinte de fond).
+     *
+     * @return array{primary: string, primary_ink: string, primary_strong: string, primary_soft: string, primary_light: string, primary_deep: string, secondary: string, secondary_ink: string}
      */
     public static function from(string $primary, ?string $secondary = null): array
     {
@@ -26,6 +31,8 @@ final class ColorPalette
             'primary_ink' => self::hex(self::readableOn($primaryRgb)),
             'primary_strong' => self::hex(self::darkenUntilReadable($primaryRgb, self::WHITE, 4.5)),
             'primary_soft' => self::hex(self::mix($primaryRgb, self::WHITE, 0.92)),
+            'primary_light' => self::hex(self::lightenUntilReadable($primaryRgb, self::DARK_BG, 4.5)),
+            'primary_deep' => self::hex(self::mix($primaryRgb, self::DARK_BG, 0.84)),
             'secondary' => self::hex($secondaryRgb),
             'secondary_ink' => self::hex(self::readableOn($secondaryRgb)),
         ];
@@ -79,6 +86,22 @@ final class ColorPalette
 
         for ($step = 1; self::contrastRgb($candidate, $background) < $ratio && $step <= 20; $step++) {
             $candidate = self::mix($rgb, [0, 0, 0], $step * 0.05);
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @param  array{int, int, int}  $rgb
+     * @param  array{int, int, int}  $background
+     * @return array{int, int, int}
+     */
+    private static function lightenUntilReadable(array $rgb, array $background, float $ratio): array
+    {
+        $candidate = $rgb;
+
+        for ($step = 1; self::contrastRgb($candidate, $background) < $ratio && $step <= 20; $step++) {
+            $candidate = self::mix($rgb, self::WHITE, $step * 0.05);
         }
 
         return $candidate;

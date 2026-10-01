@@ -2,6 +2,7 @@
 
 namespace App\Domain\Sites;
 
+use App\Domain\Content\Revisions;
 use App\Models\AuditLog;
 use App\Models\Site;
 
@@ -19,10 +20,10 @@ class ApplyDesign
         $settings = $site->settings ?? [];
         $settings['design'] = $design;
 
-        $site->update([
+        Revisions::as('design', fn () => $site->update([
             'settings' => $settings,
             'draft_spec' => $site->draft_spec === null ? null : self::onSpec($site->draft_spec, $design),
-        ]);
+        ]));
 
         AuditLog::record('design_applied', $site, ['name' => $design['name'] ?? null]);
     }

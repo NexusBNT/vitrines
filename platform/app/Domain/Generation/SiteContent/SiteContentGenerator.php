@@ -2,6 +2,7 @@
 
 namespace App\Domain\Generation\SiteContent;
 
+use App\Domain\Content\PageTree;
 use App\Domain\Generation\AiException;
 use App\Domain\Generation\AiManager;
 use App\Domain\Generation\AiRequest;
@@ -59,7 +60,7 @@ class SiteContentGenerator
 
             if ($problems === []) {
                 return [
-                    'spec' => $this->merge($skeleton, $response->data),
+                    'spec' => PageTree::carryOverCustomPages($site->draft_spec, $this->merge($skeleton, $response->data), $site->plan->max_pages),
                     'warnings' => $result['warnings'],
                 ];
             }

@@ -3,10 +3,14 @@
 namespace App\Filament\Resources\Sites\Pages;
 
 use App\Domain\Build\BuildPreview;
+use App\Domain\Content\PageTree;
+use App\Domain\Content\Revisions;
 use App\Domain\Generation\AiManager;
+use App\Domain\Generation\GenerationProgress;
 use App\Domain\Sites\DraftSpecFactory;
 use App\Enums\PlanFeature;
 use App\Filament\Resources\Sites\Pages\Concerns\BuildsPreview;
+use App\Filament\Resources\Sites\Pages\Concerns\ShowsGenerationProgress;
 use App\Filament\Resources\Sites\SiteResource;
 use App\Jobs\GenerateFullSite;
 use App\Jobs\GenerateSiteContent;
@@ -25,7 +29,7 @@ use Filament\Support\Icons\Heroicon;
  */
 class EditSite extends EditRecord
 {
-    use BuildsPreview;
+    use BuildsPreview, ShowsGenerationProgress;
 
     protected static ?string $navigationLabel = 'Paramètres';
 
@@ -41,8 +45,8 @@ class EditSite extends EditRecord
                 ->icon(Heroicon::OutlinedRocketLaunch)
                 ->color('success')
                 ->visible(fn (): bool => $this->record->plan->hasFeature(PlanFeature::AiFull))
-                ->disabled(! $aiAvailable)
-                ->tooltip($aiAvailable ? null : 'Ajoutez une clé API dans le fichier .env.')
+                ->disabled(fn (): bool => ! $aiAvailable || $this->generationRunning())
+                ->tooltip(fn (): ?string => ! $aiAvailable ? 'Ajoutez une clé API dans le fichier .env.' : ($this->generationRunning() ? 'Une génération est déjà en cours.' : null))
                 ->modalHeading('Génération intégrale du site')
                 ->modalDescription('L\'IA choisit un design (si aucun n\'est retenu), crée les illustrations manquantes, puis rédige tous les textes. Comptez 3 à 5 minutes ; le résultat arrive dans la cloche des notifications. Les textes actuels seront remplacés.')
                 ->modalSubmitActionLabel('Tout générer')
@@ -58,23 +62,25 @@ class EditSite extends EditRecord
                 ])
                 ->action(function (array $data): void {
                     $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                    GenerationProgress::queue($this->record, 'full', GenerateFullSite::LABEL);
                     GenerateFullSite::dispatch($this->record, auth()->user(), $data['instructions'] ?? null, (bool) ($data['replace_illustrations'] ?? false));
+                    $this->dispatch('generation-queued');
 
                     Notification::make()
                         ->title('Génération intégrale lancée')
-                        ->body('Comptez 3 à 5 minutes. Le résultat arrivera dans la cloche des notifications.')
+                        ->body('Comptez 3 à 5 minutes. Suivez l\'avancement en haut de la page ; le résultat arrivera aussi dans la cloche des notifications.')
                         ->success()
                         ->send();
                 }),
             Action::make('generateWithAi')
                 ->label('Rédiger avec l\'IA')
                 ->icon(Heroicon::OutlinedSparkles)
-                ->disabled(! $aiAvailable)
-                ->tooltip($aiAvailable ? null : 'Ajoutez une clé API (ANTHROPIC_API_KEY ou OPENAI_API_KEY) dans le fichier .env.')
+                ->disabled(fn (): bool => ! $aiAvailable || $this->generationRunning())
+                ->tooltip(fn (): ?string => ! $aiAvailable ? 'Ajoutez une clé API (ANTHROPIC_API_KEY ou OPENAI_API_KEY) dans le fichier .env.' : ($this->generationRunning() ? 'Une génération est déjà en cours.' : null))
                 ->modalHeading('Rédiger les textes avec l\'IA')
                 ->modalDescription(fn (): string => $this->record->draft_spec === null
                     ? 'Les textes sont rédigés à partir du brief, en environ une minute. Vous serez prévenu dans la cloche en haut à droite.'
-                    : 'Les textes actuels du site seront remplacés, y compris vos retouches manuelles. Vous serez prévenu dans la cloche en haut à droite.')
+                    : 'Les textes actuels du site seront remplacés, y compris vos retouches manuelles (les pages que vous avez créées sont conservées, et la version actuelle reste restaurable depuis l\'historique de l\'éditeur). Vous serez prévenu dans la cloche en haut à droite.')
                 ->modalSubmitActionLabel('Lancer la rédaction')
                 ->schema([
                     Textarea::make('instructions')
@@ -85,7 +91,9 @@ class EditSite extends EditRecord
                 ])
                 ->action(function (array $data): void {
                     $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                    GenerationProgress::queue($this->record, 'content', GenerateSiteContent::LABEL);
                     GenerateSiteContent::dispatch($this->record, auth()->user(), $data['instructions'] ?? null);
+                    $this->dispatch('generation-queued');
 
                     Notification::make()
                         ->title('Rédaction lancée')
@@ -110,7 +118,9 @@ class EditSite extends EditRecord
                     ->modalDescription('Le contenu actuel du site sera remplacé par un brouillon qui reprend simplement le brief.')
                     ->action(function (DraftSpecFactory $factory): void {
                         $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
-                        $this->record->update(['draft_spec' => $factory->make($this->record->refresh())]);
+                        $site = $this->record->refresh();
+                        $spec = PageTree::carryOverCustomPages($site->draft_spec, $factory->make($site), $site->plan->max_pages);
+                        Revisions::as('draft', fn () => $site->update(['draft_spec' => $spec]));
                         AuditLog::record('draft_generated', $this->record);
 
                         Notification::make()->title('Brouillon généré')->body('Cliquez sur « Prévisualiser » pour voir le site.')->success()->send();
